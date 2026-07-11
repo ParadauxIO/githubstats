@@ -53,6 +53,7 @@ const Args = struct {
     exclude_langs: ?[]const u8 = null,
     exclude_private: bool = false,
     exclude_forks: bool = false,
+    exclude_external: bool = false,
     overview_output_file: ?[]const u8 = null,
     languages_output_file: ?[]const u8 = null,
     repositories_output_file: ?[]const u8 = null,
@@ -296,6 +297,27 @@ fn yearChart(
     return try std.mem.concat(a, u8, columns);
 }
 
+/// Whether `owner/name` belongs to someone other than `user`.
+///
+/// A repository's language byte counts are attributed in full to everyone who
+/// commits to it, so a single commit to someone else's project otherwise counts
+/// their entire codebase as ours.
+fn isExternal(repository: []const u8, user: []const u8) bool {
+    const slash = std.mem.indexOfScalar(u8, repository, '/') orelse return false;
+    return !std.ascii.eqlIgnoreCase(repository[0..slash], user);
+}
+
+test isExternal {
+    try std.testing.expect(!isExternal("ParadauxIO/githubstats", "ParadauxIO"));
+    // GitHub logins are case insensitive
+    try std.testing.expect(!isExternal("paradauxio/dotfiles", "ParadauxIO"));
+    try std.testing.expect(isExternal("SpongePowered/SpongeDocs", "ParadauxIO"));
+    // A name that merely starts with the user's login is still external
+    try std.testing.expect(isExternal("ParadauxIO2/x", "ParadauxIO"));
+    // Malformed names without an owner are treated as ours rather than dropped
+    try std.testing.expect(!isExternal("noslash", "ParadauxIO"));
+}
+
 const star_octicon =
     \\<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="12" height="12"><path fill-rule="evenodd" d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25zm0 2.445L6.615 5.5a.75.75 0 01-.564.41l-3.097.45 2.24 2.184a.75.75 0 01.216.664l-.528 3.084 2.769-1.456a.75.75 0 01.698 0l2.77 1.456-.53-3.084a.75.75 0 01.216-.664l2.24-2.183-3.096-.45a.75.75 0 01-.564-.41L8 2.694v.001z"></path></svg>
 ;
@@ -477,7 +499,8 @@ pub fn main(init: std.process.Init) !void {
     for (stats.repositories) |repository| {
         if (glob.matchAny(exclude_repos orelse &.{}, repository.name) or
             (args.exclude_private and repository.private) or
-            (args.exclude_forks and repository.fork))
+            (args.exclude_forks and repository.fork) or
+            (args.exclude_external and isExternal(repository.name, stats.user)))
         {
             continue;
         }

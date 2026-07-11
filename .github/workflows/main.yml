@@ -48,6 +48,10 @@ jobs:
         # Forks carry the parent project's code, so their language byte counts
         # and stars are not really ours
         EXCLUDE_FORKS: "true"
+        # A repo's language bytes are attributed in full to everyone who commits
+        # to it, so a single commit to someone else's project would otherwise
+        # count their whole codebase as ours
+        EXCLUDE_EXTERNAL: "true"
         SILENT: "true"
         # TODO: Remove this when they get their API working again
         # https://github.com/orgs/community/discussions/192970
