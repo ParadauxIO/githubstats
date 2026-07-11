@@ -5,12 +5,17 @@ https://github.community/t/support-theme-context-for-images-in-light-vs-dark-mod
 -->
 
 <div align="center">
-<a href="https://github.com/jstrieb/github-stats">
-<img src="https://github.com/jstrieb/github-stats/blob/generated/overview.svg#gh-dark-mode-only" />
-<img src="https://github.com/jstrieb/github-stats/blob/generated/languages.svg#gh-dark-mode-only" />
-<img src="https://github.com/jstrieb/github-stats/blob/generated/overview.svg#gh-light-mode-only" />
-<img src="https://github.com/jstrieb/github-stats/blob/generated/languages.svg#gh-light-mode-only" />
+<a href="https://github.com/ParadauxIO/githubstats">
+<img src="https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-dark-mode-only" />
+<img src="https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-dark-mode-only" />
+<img src="https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-light-mode-only" />
+<img src="https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-light-mode-only" />
 </a>
+</div>
+
+<div align="center">
+A fork of <a href="https://github.com/jstrieb/github-stats">jstrieb/github-stats</a>,
+with the overview card extended to break contributions down by type and by year.
 </div>
 
 Generate visualizations of GitHub user and repository statistics with GitHub
@@ -165,12 +170,11 @@ and retrieve the images.
    - The [`languages.svg`](tree/generated/languages.svg) file.
 1. To add the statistics to your GitHub profile README, copy and paste the
    following lines of code into your markdown content.
-   - Replace `[USERNAME]` in the links below with your own username.
    ``` markdown
-   ![](https://github.com/[USERNAME]/github-stats/blob/generated/overview.svg#gh-dark-mode-only)
-   ![](https://github.com/[USERNAME]/github-stats/blob/generated/overview.svg#gh-light-mode-only)
-   ![](https://github.com/[USERNAME]/github-stats/blob/generated/languages.svg#gh-dark-mode-only)
-   ![](https://github.com/[USERNAME]/github-stats/blob/generated/languages.svg#gh-light-mode-only)
+   ![](https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-dark-mode-only)
+   ![](https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-light-mode-only)
+   ![](https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-dark-mode-only)
+   ![](https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-light-mode-only)
    [Created by `jstrieb/github-stats`.](https://github.com/jstrieb/github-stats)
    ```
 1. Star this repo if you like it!
