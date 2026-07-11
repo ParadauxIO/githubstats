@@ -42,7 +42,10 @@ jobs:
         ./zig-out/bin/github-stats
       env:
         ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-        EXCLUDE_REPOS: ${{ secrets.EXCLUDE_REPOS }}
+        # This repo would otherwise count itself in its own statistics. Falls
+        # back to the EXCLUDE_REPOS secret if one is set.
+        EXCLUDE_REPOS: >-
+          ParadauxIO/githubstats,${{ secrets.EXCLUDE_REPOS }}
         EXCLUDE_LANGS: ${{ secrets.EXCLUDE_LANGS }}
         EXCLUDE_PRIVATE: "false"
         # Forks carry the parent project's code, so their language byte counts
