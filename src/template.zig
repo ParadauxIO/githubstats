@@ -1,6 +1,7 @@
 const std = @import("std");
 
-fn decimalToString(allocator: std.mem.Allocator, n: anytype) ![]const u8 {
+/// Format an unsigned integer with thousands separators (e.g. 1234 -> "1,234").
+pub fn decimalToString(allocator: std.mem.Allocator, n: anytype) ![]const u8 {
     const info = @typeInfo(@TypeOf(n));
     if (info != .int or info.int.signedness != .unsigned) {
         @compileError("Only implemented for unsigned integers.");

@@ -11,8 +11,43 @@ issue_contributions: u32 = 0,
 commit_contributions: u32 = 0,
 pr_contributions: u32 = 0,
 review_contributions: u32 = 0,
+// Defaults to empty so that JSON dumped by older versions still parses
+yearly: []YearContributions = &.{},
 
 const Statistics = @This();
+
+/// The same contribution counts as above, but broken down by the year they
+/// happened in, sorted oldest first. Populated from the same GraphQL responses
+/// that produce the totals, so it costs no extra API requests.
+pub const YearContributions = struct {
+    year: u32,
+    repo_contributions: u32 = 0,
+    issue_contributions: u32 = 0,
+    commit_contributions: u32 = 0,
+    pr_contributions: u32 = 0,
+    review_contributions: u32 = 0,
+
+    pub fn total(self: @This()) u32 {
+        return self.repo_contributions +
+            self.issue_contributions +
+            self.commit_contributions +
+            self.pr_contributions +
+            self.review_contributions;
+    }
+};
+
+test "YearContributions.total sums every kind of contribution" {
+    const y: YearContributions = .{
+        .year = 2024,
+        .repo_contributions = 1,
+        .issue_contributions = 20,
+        .commit_contributions = 300,
+        .pr_contributions = 4000,
+        .review_contributions = 50000,
+    };
+    try std.testing.expectEqual(54321, y.total());
+    try std.testing.expectEqual(0, (YearContributions{ .year = 2024 }).total());
+}
 
 const Repository = struct {
     name: []const u8,
@@ -151,6 +186,7 @@ pub fn deinit(self: Statistics, allocator: std.mem.Allocator) void {
         allocator.free(email);
     }
     allocator.free(self.emails);
+    allocator.free(self.yearly);
 }
 
 fn getBasicInfo(client: *HttpClient, arena: *std.heap.ArenaAllocator) !struct {
@@ -238,6 +274,10 @@ fn getReposByYear(
         client: *HttpClient,
         user: []const u8,
         result: *Statistics,
+        // The entry in result.yearly for the year being queried. Recursive
+        // calls subdivide the year, so several calls accumulate into the same
+        // entry.
+        year_stats: *YearContributions,
         seen: *std.StringHashMap(bool),
         repositories: *std.ArrayList(Repository),
     },
@@ -375,6 +415,13 @@ fn getReposByYear(
     context.result.commit_contributions += stats.totalCommitContributions;
     context.result.pr_contributions += stats.totalPullRequestContributions;
     context.result.review_contributions +=
+        stats.totalPullRequestReviewContributions;
+
+    context.year_stats.repo_contributions += stats.totalRepositoryContributions;
+    context.year_stats.issue_contributions += stats.totalIssueContributions;
+    context.year_stats.commit_contributions += stats.totalCommitContributions;
+    context.year_stats.pr_contributions += stats.totalPullRequestContributions;
+    context.year_stats.review_contributions +=
         stats.totalPullRequestReviewContributions;
 
     for (stats.commitContributionsByRepository) |x| {
@@ -521,17 +568,36 @@ fn getRepos(
         }
     }
 
+    var yearly: std.ArrayList(YearContributions) =
+        try .initCapacity(allocator, info.years.len);
+    errdefer yearly.deinit(allocator);
     for (info.years) |year| {
+        // Capacity is reserved up front, so this pointer stays valid for the
+        // duration of the call below (which is the only place it is used).
+        const year_stats = yearly.addOneAssumeCapacity();
+        year_stats.* = .{ .year = year };
         try getReposByYear(.{
             .allocator = allocator,
             .arena = arena,
             .client = client,
             .user = info.user,
             .result = &result,
+            .year_stats = year_stats,
             .seen = &seen,
             .repositories = &repositories,
         }, year, 0, 12);
     }
+    result.yearly = try yearly.toOwnedSlice(allocator);
+    errdefer allocator.free(result.yearly);
+    std.sort.pdq(YearContributions, result.yearly, {}, struct {
+        pub fn lessThanFn(
+            _: void,
+            lhs: YearContributions,
+            rhs: YearContributions,
+        ) bool {
+            return lhs.year < rhs.year;
+        }
+    }.lessThanFn);
 
     result.repositories = try repositories.toOwnedSlice(allocator);
     errdefer {

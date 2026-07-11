@@ -6,6 +6,8 @@ const argparse = @import("argparse.zig");
 const glob = @import("glob.zig");
 const templateFill = @import("template.zig").fill;
 
+const commify = @import("template.zig").decimalToString;
+
 const HttpClient = @import("http_client.zig");
 const Statistics = @import("statistics.zig");
 
@@ -165,6 +167,126 @@ fn languages(
     );
 }
 
+/// Colors for each kind of contribution. Every kind is also labelled with text
+/// and a count, so the color is never the only thing distinguishing them.
+const contribution_kinds = [_]struct {
+    label: []const u8,
+    color: []const u8,
+    field: []const u8,
+}{
+    .{ .label = "Commits", .color = "#2ea043", .field = "commits" },
+    .{ .label = "Pull requests", .color = "#8957e5", .field = "prs" },
+    .{ .label = "Reviews", .color = "#1f6feb", .field = "reviews" },
+    .{ .label = "Issues", .color = "#db6d28", .field = "issues" },
+    .{ .label = "Repos created", .color = "#d29922", .field = "new_repos" },
+};
+
+/// Split the single all-time contribution total into its five kinds, rendered
+/// as a stacked bar plus a legend, reusing the markup that languages.svg uses.
+fn contributionBreakdown(arena: *std.heap.ArenaAllocator, stats: anytype) !struct {
+    progress: []const u8,
+    list: []const u8,
+} {
+    const a = arena.allocator();
+    const progress = try a.alloc([]const u8, contribution_kinds.len);
+    const list = try a.alloc([]const u8, contribution_kinds.len);
+    var total: usize = 0;
+    inline for (contribution_kinds) |kind| {
+        total += @field(stats, kind.field);
+    }
+    inline for (contribution_kinds, 0..) |kind, i| {
+        const count: usize = @field(stats, kind.field);
+        const percent =
+            100 * if (total == 0)
+                0.0
+            else
+                @as(f64, @floatFromInt(count)) / @as(f64, @floatFromInt(total));
+        progress[i] = try std.fmt.allocPrint(a,
+            \\<span style="
+            \\  background-color: {s};
+            \\  width: {d:.3}%;
+            \\" class="progress-item"></span>
+        , .{ kind.color, percent });
+        const pretty_count = try commify(a, count);
+        defer a.free(pretty_count);
+        list[i] = try std.fmt.allocPrint(a,
+            \\<li style="animation-delay: {d}ms;">
+            \\  <svg
+            \\      xmlns="http://www.w3.org/2000/svg"
+            \\      class="octicon"
+            \\      style="fill: {s};"
+            \\      viewBox="0 0 16 16"
+            \\      version="1.1"
+            \\      width="16"
+            \\      height="16"
+            \\  ><path
+            \\      fill-rule="evenodd"
+            \\      d="M8 4a4 4 0 100 8 4 4 0 000-8z"
+            \\  ></path></svg>
+            \\  <span class="lang">{s}</span>
+            \\  <span class="percent">{s}</span>
+            \\</li>
+            \\
+        , .{ (i + 1) * 150, kind.color, kind.label, pretty_count });
+    }
+    return .{
+        .progress = try std.mem.concat(a, u8, progress),
+        .list = try std.mem.concat(a, u8, list),
+    };
+}
+
+/// A column chart of total contributions per year. Columns are sized as a
+/// fraction of the chart, so the SVG stays a fixed size no matter how many
+/// years of history the user has.
+fn yearChart(
+    arena: *std.heap.ArenaAllocator,
+    yearly: []const Statistics.YearContributions,
+) ![]const u8 {
+    const a = arena.allocator();
+    if (yearly.len == 0) {
+        // Happens for a brand new user, or when rendering from a JSON file
+        // dumped before per-year data was collected
+        return
+        \\<span class="year-label">No per-year data available.</span>
+        ;
+    }
+    var max: u32 = 0;
+    for (yearly) |year| {
+        max = @max(max, year.total());
+    }
+    // Once there are too many years to label each column, label every other
+    // one. Counting back from the end keeps the most recent year labelled.
+    const label_every: usize = if (yearly.len > 12) 2 else 1;
+    const columns = try a.alloc([]const u8, yearly.len);
+    for (yearly, columns, 0..) |year, *column, i| {
+        const total = year.total();
+        const height =
+            if (max == 0 or total == 0)
+                0.0
+            else
+                // Give non-empty years a floor so they stay visible next to a
+                // year that dwarfs them
+                @max(3.0, 100 * @as(f64, @floatFromInt(total)) /
+                    @as(f64, @floatFromInt(max)));
+        const label =
+            if ((yearly.len - 1 - i) % label_every == 0)
+                try std.fmt.allocPrint(a, "'{d:02}", .{year.year % 100})
+            else
+                "";
+        column.* = try std.fmt.allocPrint(a,
+            \\<div class="year-col">
+            \\  <div class="year-bar-wrap"><div
+            \\      class="year-bar"
+            \\      style="height: {d:.2}%; animation-delay: {d}ms;"
+            \\  ></div></div>
+            \\  <span class="year-label">{s}</span>
+            \\</div>
+            \\
+        , .{ height, i * 100, label });
+    }
+    return try std.mem.concat(a, u8, columns);
+}
+
 pub fn main(init: std.process.Init) !void {
     const allocator = init.gpa;
     const io = init.io;
@@ -250,12 +372,21 @@ pub fn main(init: std.process.Init) !void {
         language_colors: std.array_hash_map.String([]const u8),
         contributions: usize,
         name: []const u8,
+        commits: usize,
+        prs: usize,
+        reviews: usize,
+        issues: usize,
+        new_repos: usize,
         languages_total: usize = 0,
         stars: usize = 0,
         forks: usize = 0,
         lines_changed: usize = 0,
         views: usize = 0,
         repos: usize = 0,
+        // Markup built at render time, below
+        contribution_progress: []const u8 = "",
+        contribution_list: []const u8 = "",
+        year_chart: []const u8 = "",
     } = .{
         .contributions = stats.repo_contributions +
             stats.issue_contributions +
@@ -265,6 +396,11 @@ pub fn main(init: std.process.Init) !void {
         .languages = try .init(allocator, &.{}, &.{}),
         .language_colors = try .init(allocator, &.{}, &.{}),
         .name = stats.name,
+        .commits = stats.commit_contributions,
+        .prs = stats.pr_contributions,
+        .reviews = stats.review_contributions,
+        .issues = stats.issue_contributions,
+        .new_repos = stats.repo_contributions,
     };
     defer aggregate_stats.languages.deinit(allocator);
     defer aggregate_stats.language_colors.deinit(allocator);
@@ -307,6 +443,11 @@ pub fn main(init: std.process.Init) !void {
     {
         var arena = std.heap.ArenaAllocator.init(allocator);
         defer arena.deinit();
+
+        const breakdown = try contributionBreakdown(&arena, aggregate_stats);
+        aggregate_stats.contribution_progress = breakdown.progress;
+        aggregate_stats.contribution_list = breakdown.list;
+        aggregate_stats.year_chart = try yearChart(&arena, stats.yearly);
 
         try writeFile(
             io,
