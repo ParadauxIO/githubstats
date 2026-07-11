@@ -57,6 +57,10 @@ const Repository = struct {
     lines_changed: u32,
     views: u32,
     private: bool,
+    // A fork contains all of the parent's code, so its language byte counts
+    // (and often its stars) really belong to the upstream project rather than
+    // to us. Defaults to false so that JSON dumped by older versions parses.
+    fork: bool = false,
 
     pub fn deinit(self: @This(), allocator: std.mem.Allocator) void {
         allocator.free(self.name);
@@ -304,6 +308,7 @@ fn getReposByYear(
         \\          stargazerCount
         \\          forkCount
         \\          isPrivate
+        \\          isFork
         \\          languages(
         \\              first: 100,
         \\              orderBy: { direction: DESC, field: SIZE }
@@ -360,6 +365,7 @@ fn getReposByYear(
                         stargazerCount: u32,
                         forkCount: u32,
                         isPrivate: bool,
+                        isFork: bool,
                         languages: ?struct {
                             edges: ?[]struct {
                                 size: u32,
@@ -438,6 +444,7 @@ fn getReposByYear(
             .stars = raw_repo.stargazerCount,
             .forks = raw_repo.forkCount,
             .private = raw_repo.isPrivate,
+            .fork = raw_repo.isFork,
             .languages = null,
             .views = 0,
             .lines_changed = 0,
