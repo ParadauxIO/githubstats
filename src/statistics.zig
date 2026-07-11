@@ -11,6 +11,11 @@ issue_contributions: u32 = 0,
 commit_contributions: u32 = 0,
 pr_contributions: u32 = 0,
 review_contributions: u32 = 0,
+// Contributions to private repositories whose details the user has chosen not
+// to publish. GitHub excludes these from the five totals above but *does*
+// include them in the contribution count shown on a profile page, so they have
+// to be added back in to arrive at the number GitHub itself reports.
+restricted_contributions: u32 = 0,
 // Defaults to empty so that JSON dumped by older versions still parses
 yearly: []YearContributions = &.{},
 
@@ -26,13 +31,15 @@ pub const YearContributions = struct {
     commit_contributions: u32 = 0,
     pr_contributions: u32 = 0,
     review_contributions: u32 = 0,
+    restricted_contributions: u32 = 0,
 
     pub fn total(self: @This()) u32 {
         return self.repo_contributions +
             self.issue_contributions +
             self.commit_contributions +
             self.pr_contributions +
-            self.review_contributions;
+            self.review_contributions +
+            self.restricted_contributions;
     }
 };
 
@@ -44,8 +51,9 @@ test "YearContributions.total sums every kind of contribution" {
         .commit_contributions = 300,
         .pr_contributions = 4000,
         .review_contributions = 50000,
+        .restricted_contributions = 600000,
     };
-    try std.testing.expectEqual(54321, y.total());
+    try std.testing.expectEqual(654321, y.total());
     try std.testing.expectEqual(0, (YearContributions{ .year = 2024 }).total());
 }
 
@@ -302,6 +310,7 @@ fn getReposByYear(
         \\      totalCommitContributions
         \\      totalPullRequestContributions
         \\      totalPullRequestReviewContributions
+        \\      restrictedContributionsCount
         \\      commitContributionsByRepository(maxRepositories: 100) {
         \\        repository {
         \\          nameWithOwner
@@ -359,6 +368,7 @@ fn getReposByYear(
                 totalCommitContributions: u32,
                 totalPullRequestContributions: u32,
                 totalPullRequestReviewContributions: u32,
+                restrictedContributionsCount: u32,
                 commitContributionsByRepository: []struct {
                     repository: struct {
                         nameWithOwner: []const u8,
@@ -422,6 +432,8 @@ fn getReposByYear(
     context.result.pr_contributions += stats.totalPullRequestContributions;
     context.result.review_contributions +=
         stats.totalPullRequestReviewContributions;
+    context.result.restricted_contributions +=
+        stats.restrictedContributionsCount;
 
     context.year_stats.repo_contributions += stats.totalRepositoryContributions;
     context.year_stats.issue_contributions += stats.totalIssueContributions;
@@ -429,6 +441,8 @@ fn getReposByYear(
     context.year_stats.pr_contributions += stats.totalPullRequestContributions;
     context.year_stats.review_contributions +=
         stats.totalPullRequestReviewContributions;
+    context.year_stats.restricted_contributions +=
+        stats.restrictedContributionsCount;
 
     for (stats.commitContributionsByRepository) |x| {
         const raw_repo = x.repository;

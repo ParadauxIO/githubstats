@@ -189,6 +189,9 @@ const contribution_kinds = [_]struct {
     .{ .label = "Reviews", .color = "#1f6feb", .field = "reviews" },
     .{ .label = "Issues", .color = "#db6d28", .field = "issues" },
     .{ .label = "Repos created", .color = "#d29922", .field = "new_repos" },
+    // Contributions to private repos whose details are not published. GitHub
+    // reports only the count, with no breakdown by kind.
+    .{ .label = "Private", .color = "#6e7681", .field = "restricted" },
 };
 
 /// Split the single all-time contribution total into its five kinds, rendered
@@ -460,6 +463,7 @@ pub fn main(init: std.process.Init) !void {
         reviews: usize,
         issues: usize,
         new_repos: usize,
+        restricted: usize,
         languages_total: usize = 0,
         stars: usize = 0,
         forks: usize = 0,
@@ -475,7 +479,8 @@ pub fn main(init: std.process.Init) !void {
             stats.issue_contributions +
             stats.commit_contributions +
             stats.pr_contributions +
-            stats.review_contributions,
+            stats.review_contributions +
+            stats.restricted_contributions,
         .languages = try .init(allocator, &.{}, &.{}),
         .language_colors = try .init(allocator, &.{}, &.{}),
         .name = stats.name,
@@ -484,6 +489,7 @@ pub fn main(init: std.process.Init) !void {
         .reviews = stats.review_contributions,
         .issues = stats.issue_contributions,
         .new_repos = stats.repo_contributions,
+        .restricted = stats.restricted_contributions,
     };
     defer aggregate_stats.languages.deinit(allocator);
     defer aggregate_stats.language_colors.deinit(allocator);
