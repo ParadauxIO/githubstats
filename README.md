@@ -5,12 +5,24 @@ https://github.community/t/support-theme-context-for-images-in-light-vs-dark-mod
 -->
 
 <div align="center">
-<a href="https://github.com/ParadauxIO/githubstats">
+<table>
+<tr>
+<td rowspan="2" valign="top">
 <img src="https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-dark-mode-only" />
-<img src="https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-dark-mode-only" />
 <img src="https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-light-mode-only" />
+</td>
+<td valign="top">
+<img src="https://github.com/ParadauxIO/githubstats/blob/generated/repositories.svg#gh-dark-mode-only" />
+<img src="https://github.com/ParadauxIO/githubstats/blob/generated/repositories.svg#gh-light-mode-only" />
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-dark-mode-only" />
 <img src="https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-light-mode-only" />
-</a>
+</td>
+</tr>
+</table>
 </div>
 
 <div align="center">
@@ -169,12 +181,29 @@ and retrieve the images.
    - The [`overview.svg`](tree/generated/overview.svg) file.
    - The [`languages.svg`](tree/generated/languages.svg) file.
 1. To add the statistics to your GitHub profile README, copy and paste the
-   following lines of code into your markdown content.
-   ``` markdown
-   ![](https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-dark-mode-only)
-   ![](https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-light-mode-only)
-   ![](https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-dark-mode-only)
-   ![](https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-light-mode-only)
+   following into your markdown content. The three cards are sized to tile into
+   a two-column grid: the tall overview card on the left, with the repositories
+   and languages cards stacked beside it.
+   ``` html
+   <table>
+   <tr>
+   <td rowspan="2" valign="top">
+   <img src="https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-dark-mode-only" />
+   <img src="https://github.com/ParadauxIO/githubstats/blob/generated/overview.svg#gh-light-mode-only" />
+   </td>
+   <td valign="top">
+   <img src="https://github.com/ParadauxIO/githubstats/blob/generated/repositories.svg#gh-dark-mode-only" />
+   <img src="https://github.com/ParadauxIO/githubstats/blob/generated/repositories.svg#gh-light-mode-only" />
+   </td>
+   </tr>
+   <tr>
+   <td valign="top">
+   <img src="https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-dark-mode-only" />
+   <img src="https://github.com/ParadauxIO/githubstats/blob/generated/languages.svg#gh-light-mode-only" />
+   </td>
+   </tr>
+   </table>
+
    [Created by `jstrieb/github-stats`.](https://github.com/jstrieb/github-stats)
    ```
 1. Star this repo if you like it!

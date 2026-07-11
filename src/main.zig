@@ -36,6 +36,11 @@ fn logFn(
 
 const embedded_overview_template = @embedFile("templates/overview.svg");
 const embedded_languages_template = @embedFile("templates/languages.svg");
+const embedded_repositories_template = @embedFile("templates/repositories.svg");
+
+/// How many repositories the repositories card lists. The card is a fixed size,
+/// so more rows than this would be clipped.
+const max_listed_repositories = 8;
 
 const Args = struct {
     access_token: ?[]const u8 = null,
@@ -49,12 +54,15 @@ const Args = struct {
     exclude_private: bool = false,
     overview_output_file: ?[]const u8 = null,
     languages_output_file: ?[]const u8 = null,
+    repositories_output_file: ?[]const u8 = null,
     overview_template: ?[]const u8 = null,
     languages_template: ?[]const u8 = null,
+    repositories_template: ?[]const u8 = null,
     max_retries: ?usize = 25,
     version: bool = false,
     dump_overview_template: ?[]const u8 = null,
     dump_languages_template: ?[]const u8 = null,
+    dump_repositories_template: ?[]const u8 = null,
 
     const Self = @This();
 
@@ -287,6 +295,53 @@ fn yearChart(
     return try std.mem.concat(a, u8, columns);
 }
 
+const star_octicon =
+    \\<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="12" height="12"><path fill-rule="evenodd" d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25zm0 2.445L6.615 5.5a.75.75 0 01-.564.41l-3.097.45 2.24 2.184a.75.75 0 01.216.664l-.528 3.084 2.769-1.456a.75.75 0 01.698 0l2.77 1.456-.53-3.084a.75.75 0 01.216-.664l2.24-2.183-3.096-.45a.75.75 0 01-.564-.41L8 2.694v.001z"></path></svg>
+;
+
+const eye_octicon =
+    \\<svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="12" height="12"><path fill-rule="evenodd" d="M1.679 7.932c.412-.621 1.242-1.75 2.366-2.717C5.175 4.242 6.527 3.5 8 3.5c1.473 0 2.824.742 3.955 1.715 1.124.967 1.954 2.096 2.366 2.717a.119.119 0 010 .136c-.412.621-1.242 1.75-2.366 2.717C10.825 11.758 9.473 12.5 8 12.5c-1.473 0-2.824-.742-3.955-1.715C2.92 9.818 2.09 8.69 1.679 8.068a.119.119 0 010-.136zM8 2c-1.981 0-3.67.992-4.933 2.078C1.797 5.169.88 6.423.43 7.1a1.619 1.619 0 000 1.798c.45.678 1.367 1.932 2.637 3.024C4.329 13.008 6.019 14 8 14c1.981 0 3.67-.992 4.933-2.078 1.27-1.091 2.187-2.345 2.637-3.023a1.619 1.619 0 000-1.798c-.45-.678-1.367-1.932-2.637-3.023C11.671 2.992 9.981 2 8 2zm0 8a2 2 0 100-4 2 2 0 000 4z"></path></svg>
+;
+
+/// The repositories card, listing the most-viewed repositories by name.
+///
+/// Private repositories are deliberately never named here: they still count
+/// toward the aggregate totals on the other cards, but naming them would
+/// publish the names of private repos on a public profile. `repos` is expected
+/// to already have private and excluded repositories filtered out.
+fn repositories(
+    arena: *std.heap.ArenaAllocator,
+    repos: anytype,
+    template: []const u8,
+) ![]const u8 {
+    const a = arena.allocator();
+    if (repos.len == 0) {
+        return templateFill(a, template, struct { repo_list: []const u8 }{
+            .repo_list =
+            \\<li><span class="empty">No public repositories found.</span></li>
+            ,
+        });
+    }
+    const rows = try a.alloc([]const u8, repos.len);
+    for (repos, rows, 0..) |repo, *row, i| {
+        const stars = try commify(a, repo.stars);
+        defer a.free(stars);
+        const views = try commify(a, repo.views);
+        defer a.free(views);
+        row.* = try std.fmt.allocPrint(a,
+            \\<li style="animation-delay: {d}ms;">
+            \\  <span class="repo-name">{s}</span>
+            \\  <span class="repo-stat">{s}{s}</span>
+            \\  <span class="repo-stat">{s}{s}</span>
+            \\</li>
+            \\
+        , .{ i * 150, repo.name, star_octicon, stars, eye_octicon, views });
+    }
+    return templateFill(a, template, struct { repo_list: []const u8 }{
+        .repo_list = try std.mem.concat(a, u8, rows),
+    });
+}
+
 pub fn main(init: std.process.Init) !void {
     const allocator = init.gpa;
     const io = init.io;
@@ -320,6 +375,11 @@ pub fn main(init: std.process.Init) !void {
 
     if (args.dump_languages_template) |path| {
         try writeFile(io, path, embedded_languages_template);
+        return;
+    }
+
+    if (args.dump_repositories_template) |path| {
+        try writeFile(io, path, embedded_repositories_template);
         return;
     }
 
@@ -404,11 +464,25 @@ pub fn main(init: std.process.Init) !void {
     };
     defer aggregate_stats.languages.deinit(allocator);
     defer aggregate_stats.language_colors.deinit(allocator);
+
+    // The most-viewed repositories, for the repositories card. Repositories are
+    // already sorted by views (then stars and forks), so taking a prefix is
+    // enough. Private repositories count toward the aggregate totals above but
+    // are never listed by name -- see repositories().
+    var top_repos: std.ArrayList(@TypeOf(stats.repositories[0])) =
+        try .initCapacity(allocator, max_listed_repositories);
+    defer top_repos.deinit(allocator);
+
     for (stats.repositories) |repository| {
         if (glob.matchAny(exclude_repos orelse &.{}, repository.name) or
             (args.exclude_private and repository.private))
         {
             continue;
+        }
+        if (!repository.private and
+            top_repos.items.len < max_listed_repositories)
+        {
+            top_repos.appendAssumeCapacity(repository);
         }
         aggregate_stats.stars += repository.stars;
         aggregate_stats.forks += repository.forks;
@@ -472,6 +546,19 @@ pub fn main(init: std.process.Init) !void {
                     try readFile(arena.allocator(), io, template)
                 else
                     embedded_languages_template,
+            ),
+        );
+
+        try writeFile(
+            io,
+            args.repositories_output_file orelse "repositories.svg",
+            try repositories(
+                &arena,
+                top_repos.items,
+                if (args.repositories_template) |template|
+                    try readFile(arena.allocator(), io, template)
+                else
+                    embedded_repositories_template,
             ),
         );
     }

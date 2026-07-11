@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A Zig CLI (`github-stats`) that collects a user's GitHub statistics via the GitHub API and renders them into two SVG images (`overview.svg`, `languages.svg`). It is normally run from `.github/workflows/main.yml`, which commits the generated SVGs to the `generated` branch. Statistics can also be dumped to / loaded from JSON.
+A Zig CLI (`github-stats`) that collects a user's GitHub statistics via the GitHub API and renders them into three SVG cards (`overview.svg`, `languages.svg`, `repositories.svg`). It is normally run from `.github/workflows/main.yml`, which commits the generated SVGs to the `generated` branch. Statistics can also be dumped to / loaded from JSON.
+
+**`repositories.svg` never names a private repository.** Private repos still contribute to the aggregate totals on the other cards, but naming them would publish private repo names on a public profile README. `repositories()` in `main.zig` documents this, and `main.zig` filters them out of `top_repos` before rendering. Don't "fix" that filter.
 
 ## Commands
 
@@ -43,7 +45,11 @@ zig build run -- --json-input-file stats.json     # re-render SVGs offline, no A
 
 **`src/template.zig` — `{{field_name}}` substitution.** `fill` reflects over the passed struct's fields at comptime; unsigned ints render with thousands separators (`decimalToString`, also reused directly by `main.zig`), `[]const u8` renders verbatim, unknown placeholders return `error.InvalidField`. The templates in `src/templates/*.svg` are `@embedFile`d into the binary (overridable with `--overview-template` / `--languages-template`, and dumpable with `--dump-overview-template` / `--dump-languages-template`).
 
-There are no loops or conditionals in the template language, so anything list- or chart-shaped is built as a raw HTML/SVG string in `main.zig` and injected as a single placeholder: `languages()` (the language bar and legend), `contributionBreakdown()` (`{{ contribution_progress }}` / `{{ contribution_list }}`), and `yearChart()` (`{{ year_chart }}`). Follow that pattern rather than extending the template engine. The cards live inside a `<foreignObject>`, i.e. they are HTML laid out by the browser, but the SVG's `width`/`height` and the `foreignObject`'s box are **fixed** — if you add content, content taller than that box is silently clipped. Both charts are sized as percentages so the SVG stays a fixed size regardless of how many years or languages a user has.
+There are no loops or conditionals in the template language, so anything list- or chart-shaped is built as a raw HTML/SVG string in `main.zig` and injected as a single placeholder: `languages()` (the language bar and legend), `contributionBreakdown()` (`{{ contribution_progress }}` / `{{ contribution_list }}`), `yearChart()` (`{{ year_chart }}`), and `repositories()` (`{{ repo_list }}`). Follow that pattern rather than extending the template engine. The cards live inside a `<foreignObject>`, i.e. they are HTML laid out by the browser, but the SVG's `width`/`height` and the `foreignObject`'s box are **fixed** — if you add content, content taller than that box is silently clipped. The charts are sized as percentages, and the repositories card is capped at `max_listed_repositories` rows, so the SVGs stay a fixed size regardless of how much history a user has.
+
+Card heights are chosen to tile into a 2-column grid in a README: `overview.svg` (512) on the left, `repositories.svg` (302) + `languages.svg` (210) stacked on the right. **If you change one card's height, fix the others so 302 + 210 still equals 512.** Note that the overview's table rows wrap to two lines for users with wide enough numbers (a seven-digit lines-changed count), which is why its box carries ~19px of slack — verify layout changes against a user with large stats, not just a small fixture.
+
+There are no automated tests for rendering. The reliable way to check a template change is to render from a JSON fixture (`--json-input-file`) and open the SVG in a *browser* — `foreignObject` is not supported by librsvg/cairosvg, and clipping is silent, so neither `zig build test` nor reading the markup will catch a card that overflows its box.
 
 **`src/http_client.zig`** wraps `std.http.Client.fetch` with `graphql()` and `rest()` helpers. It retries `error.HttpConnectionClosing` by tearing down and recreating the whole client (a workaround for a Zig keep-alive bug). Response bodies are caller-freed with `client.allocator`.
 
