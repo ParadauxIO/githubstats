@@ -11,11 +11,19 @@ issue_contributions: u32 = 0,
 commit_contributions: u32 = 0,
 pr_contributions: u32 = 0,
 review_contributions: u32 = 0,
-// Contributions to private repositories whose details the user has chosen not
-// to publish. GitHub excludes these from the five totals above but *does*
-// include them in the contribution count shown on a profile page, so they have
-// to be added back in to arrive at the number GitHub itself reports.
+// Contributions to private repositories whose details the token cannot see.
 restricted_contributions: u32 = 0,
+// The contribution count GitHub itself shows on a profile page.
+//
+// This is the authoritative total, and the only one worth trusting. The five
+// itemized totals above cover just the contributions the token can see the
+// details of; whatever it cannot see is lumped into restricted_contributions
+// instead. How activity divides between the two therefore depends on the
+// token's scopes -- widening them moves contributions from restricted into the
+// itemized fields, and the two do not always add back up to the same number.
+// The calendar total does not move, so prefer it and treat the difference
+// between it and the itemized fields as un-itemized contributions.
+calendar_contributions: u32 = 0,
 // Defaults to empty so that JSON dumped by older versions still parses
 yearly: []YearContributions = &.{},
 
@@ -32,18 +40,28 @@ pub const YearContributions = struct {
     pr_contributions: u32 = 0,
     review_contributions: u32 = 0,
     restricted_contributions: u32 = 0,
+    calendar_contributions: u32 = 0,
 
+    /// The number GitHub itself reports for the year. Falls back to summing the
+    /// itemized fields for JSON dumped before the calendar total was collected.
     pub fn total(self: @This()) u32 {
+        if (self.calendar_contributions > 0) {
+            return self.calendar_contributions;
+        }
+        return self.itemized() + self.restricted_contributions;
+    }
+
+    /// Only the contributions GitHub breaks down by kind.
+    pub fn itemized(self: @This()) u32 {
         return self.repo_contributions +
             self.issue_contributions +
             self.commit_contributions +
             self.pr_contributions +
-            self.review_contributions +
-            self.restricted_contributions;
+            self.review_contributions;
     }
 };
 
-test "YearContributions.total sums every kind of contribution" {
+test "YearContributions.total prefers the calendar total" {
     const y: YearContributions = .{
         .year = 2024,
         .repo_contributions = 1,
@@ -52,8 +70,17 @@ test "YearContributions.total sums every kind of contribution" {
         .pr_contributions = 4000,
         .review_contributions = 50000,
         .restricted_contributions = 600000,
+        .calendar_contributions = 999,
     };
-    try std.testing.expectEqual(654321, y.total());
+    try std.testing.expectEqual(54321, y.itemized());
+    // The calendar total wins over the itemized fields, whatever they say
+    try std.testing.expectEqual(999, y.total());
+
+    // Without a calendar total (JSON from an older version), fall back
+    var old = y;
+    old.calendar_contributions = 0;
+    try std.testing.expectEqual(654321, old.total());
+
     try std.testing.expectEqual(0, (YearContributions{ .year = 2024 }).total());
 }
 
@@ -311,6 +338,9 @@ fn getReposByYear(
         \\      totalPullRequestContributions
         \\      totalPullRequestReviewContributions
         \\      restrictedContributionsCount
+        \\      contributionCalendar {
+        \\        totalContributions
+        \\      }
         \\      commitContributionsByRepository(maxRepositories: 100) {
         \\        repository {
         \\          nameWithOwner
@@ -369,6 +399,9 @@ fn getReposByYear(
                 totalPullRequestContributions: u32,
                 totalPullRequestReviewContributions: u32,
                 restrictedContributionsCount: u32,
+                contributionCalendar: struct {
+                    totalContributions: u32,
+                },
                 commitContributionsByRepository: []struct {
                     repository: struct {
                         nameWithOwner: []const u8,
@@ -434,6 +467,8 @@ fn getReposByYear(
         stats.totalPullRequestReviewContributions;
     context.result.restricted_contributions +=
         stats.restrictedContributionsCount;
+    context.result.calendar_contributions +=
+        stats.contributionCalendar.totalContributions;
 
     context.year_stats.repo_contributions += stats.totalRepositoryContributions;
     context.year_stats.issue_contributions += stats.totalIssueContributions;
@@ -443,6 +478,8 @@ fn getReposByYear(
         stats.totalPullRequestReviewContributions;
     context.year_stats.restricted_contributions +=
         stats.restrictedContributionsCount;
+    context.year_stats.calendar_contributions +=
+        stats.contributionCalendar.totalContributions;
 
     for (stats.commitContributionsByRepository) |x| {
         const raw_repo = x.repository;

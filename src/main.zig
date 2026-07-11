@@ -189,9 +189,10 @@ const contribution_kinds = [_]struct {
     .{ .label = "Reviews", .color = "#1f6feb", .field = "reviews" },
     .{ .label = "Issues", .color = "#db6d28", .field = "issues" },
     .{ .label = "Repos created", .color = "#d29922", .field = "new_repos" },
-    // Contributions to private repos whose details are not published. GitHub
-    // reports only the count, with no breakdown by kind.
-    .{ .label = "Private", .color = "#6e7681", .field = "restricted" },
+    // Whatever GitHub counts on the profile but does not break down by kind --
+    // mostly contributions to private repos the token cannot see the details
+    // of. Derived as a residual so the breakdown always sums to the total.
+    .{ .label = "Private/other", .color = "#6e7681", .field = "restricted" },
 };
 
 /// Split the single all-time contribution total into its five kinds, rendered
@@ -453,6 +454,20 @@ pub fn main(init: std.process.Init) !void {
         );
     }
 
+    // The contributions GitHub itemizes by kind...
+    const itemized: usize = stats.repo_contributions +
+        stats.issue_contributions +
+        stats.commit_contributions +
+        stats.pr_contributions +
+        stats.review_contributions;
+    // ...and the total GitHub actually reports on a profile page, which is
+    // larger, and is the number to show. See Statistics.calendar_contributions.
+    // Fall back to the itemized fields for JSON dumped by older versions.
+    const contributions: usize = if (stats.calendar_contributions > 0)
+        stats.calendar_contributions
+    else
+        itemized + stats.restricted_contributions;
+
     var aggregate_stats: struct {
         languages: std.array_hash_map.String(u64),
         language_colors: std.array_hash_map.String([]const u8),
@@ -475,12 +490,7 @@ pub fn main(init: std.process.Init) !void {
         contribution_list: []const u8 = "",
         year_chart: []const u8 = "",
     } = .{
-        .contributions = stats.repo_contributions +
-            stats.issue_contributions +
-            stats.commit_contributions +
-            stats.pr_contributions +
-            stats.review_contributions +
-            stats.restricted_contributions,
+        .contributions = contributions,
         .languages = try .init(allocator, &.{}, &.{}),
         .language_colors = try .init(allocator, &.{}, &.{}),
         .name = stats.name,
@@ -489,7 +499,8 @@ pub fn main(init: std.process.Init) !void {
         .reviews = stats.review_contributions,
         .issues = stats.issue_contributions,
         .new_repos = stats.repo_contributions,
-        .restricted = stats.restricted_contributions,
+        // The residual: whatever GitHub counts but does not itemize
+        .restricted = contributions -| itemized,
     };
     defer aggregate_stats.languages.deinit(allocator);
     defer aggregate_stats.language_colors.deinit(allocator);
