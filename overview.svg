@@ -222,7 +222,7 @@ li {
 
 <tr style="animation-delay: 150ms"><td><svg class="octicon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" version="1.1" width="16" height="16" role="img"><path fill-rule="evenodd" d="M5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm0 2.122a2.25 2.25 0 10-1.5 0v.878A2.25 2.25 0 005.75 8.5h1.5v2.128a2.251 2.251 0 101.5 0V8.5h1.5a2.25 2.25 0 002.25-2.25v-.878a2.25 2.25 0 10-1.5 0v.878a.75.75 0 01-.75.75h-4.5A.75.75 0 015 6.25v-.878zm3.75 7.378a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm3-8.75a.75.75 0 100-1.5.75.75 0 000 1.5z"></path></svg>Forks</td><td>15</td></tr>
 
-<tr style="animation-delay: 300ms"><td><svg class="octicon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M1 2.5A2.5 2.5 0 013.5 0h8.75a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0V1.5h-8a1 1 0 00-1 1v6.708A2.492 2.492 0 013.5 9h3.25a.75.75 0 010 1.5H3.5a1 1 0 100 2h5.75a.75.75 0 010 1.5H3.5A2.5 2.5 0 011 11.5v-9zm13.23 7.79a.75.75 0 001.06-1.06l-2.505-2.505a.75.75 0 00-1.06 0L9.22 9.229a.75.75 0 001.06 1.061l1.225-1.224v6.184a.75.75 0 001.5 0V9.066l1.224 1.224z"></path></svg>All-time contributions</td><td>6,056</td></tr>
+<tr style="animation-delay: 300ms"><td><svg class="octicon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M1 2.5A2.5 2.5 0 013.5 0h8.75a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0V1.5h-8a1 1 0 00-1 1v6.708A2.492 2.492 0 013.5 9h3.25a.75.75 0 010 1.5H3.5a1 1 0 100 2h5.75a.75.75 0 010 1.5H3.5A2.5 2.5 0 011 11.5v-9zm13.23 7.79a.75.75 0 001.06-1.06l-2.505-2.505a.75.75 0 00-1.06 0L9.22 9.229a.75.75 0 001.06 1.061l1.225-1.224v6.184a.75.75 0 001.5 0V9.066l1.224 1.224z"></path></svg>All-time contributions</td><td>6,063</td></tr>
 
 <tr style="animation-delay: 450ms"><td><svg class="octicon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M8.75 1.75a.75.75 0 00-1.5 0V5H4a.75.75 0 000 1.5h3.25v3.25a.75.75 0 001.5 0V6.5H12A.75.75 0 0012 5H8.75V1.75zM4 13a.75.75 0 000 1.5h8a.75.75 0 100-1.5H4z"></path></svg>Lines of code changed</td><td>5,570,664</td></tr>
 
@@ -239,22 +239,22 @@ li {
 <span class="progress">
 <span style="
   background-color: #2ea043;
-  width: 83.355%;
+  width: 83.276%;
 " class="progress-item"></span><span style="
   background-color: #8957e5;
-  width: 3.798%;
+  width: 3.794%;
 " class="progress-item"></span><span style="
   background-color: #1f6feb;
-  width: 0.892%;
+  width: 0.891%;
 " class="progress-item"></span><span style="
   background-color: #db6d28;
-  width: 4.772%;
+  width: 4.767%;
 " class="progress-item"></span><span style="
   background-color: #d29922;
-  width: 1.965%;
+  width: 1.963%;
 " class="progress-item"></span><span style="
   background-color: #6e7681;
-  width: 5.218%;
+  width: 5.311%;
 " class="progress-item"></span>
 </span>
 </div>
@@ -275,7 +275,7 @@ li {
       d="M8 4a4 4 0 100 8 4 4 0 000-8z"
   ></path></svg>
   <span class="lang">Commits</span>
-  <span class="percent">5,048</span>
+  <span class="percent">5,049</span>
 </li>
 <li style="animation-delay: 300ms;">
   <svg
@@ -354,8 +354,8 @@ li {
       fill-rule="evenodd"
       d="M8 4a4 4 0 100 8 4 4 0 000-8z"
   ></path></svg>
-  <span class="lang">Private</span>
-  <span class="percent">316</span>
+  <span class="lang">Private/other</span>
+  <span class="percent">322</span>
 </li>
 
 
@@ -375,7 +375,7 @@ li {
 <div class="year-col">
   <div class="year-bar-wrap"><div
       class="year-bar"
-      style="height: 34.67%; animation-delay: 100ms;"
+      style="height: 34.66%; animation-delay: 100ms;"
   ></div></div>
   <span class="year-label">'20</span>
 </div>
@@ -389,35 +389,35 @@ li {
 <div class="year-col">
   <div class="year-bar-wrap"><div
       class="year-bar"
-      style="height: 45.91%; animation-delay: 300ms;"
+      style="height: 45.82%; animation-delay: 300ms;"
   ></div></div>
   <span class="year-label">'22</span>
 </div>
 <div class="year-col">
   <div class="year-bar-wrap"><div
       class="year-bar"
-      style="height: 65.02%; animation-delay: 400ms;"
+      style="height: 64.90%; animation-delay: 400ms;"
   ></div></div>
   <span class="year-label">'23</span>
 </div>
 <div class="year-col">
   <div class="year-bar-wrap"><div
       class="year-bar"
-      style="height: 20.36%; animation-delay: 500ms;"
+      style="height: 20.32%; animation-delay: 500ms;"
   ></div></div>
   <span class="year-label">'24</span>
 </div>
 <div class="year-col">
   <div class="year-bar-wrap"><div
       class="year-bar"
-      style="height: 26.23%; animation-delay: 600ms;"
+      style="height: 26.31%; animation-delay: 600ms;"
   ></div></div>
   <span class="year-label">'25</span>
 </div>
 <div class="year-col">
   <div class="year-bar-wrap"><div
       class="year-bar"
-      style="height: 84.95%; animation-delay: 700ms;"
+      style="height: 84.85%; animation-delay: 700ms;"
   ></div></div>
   <span class="year-label">'26</span>
 </div>
