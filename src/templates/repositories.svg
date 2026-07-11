@@ -1,4 +1,14 @@
-<svg id="gh-dark-mode-only" width="360" height="302" xmlns="http://www.w3.org/2000/svg">
+<!--
+  Height is chosen so this card and languages.svg stack to exactly the height of
+  overview.svg when tiled in a README table. GitHub's table CSS puts 6px of
+  padding and a 1px border on every cell, which opens a ~19px gap between the
+  two stacked cards that the single tall card on the other side does not have.
+  The images are scaled to fit the cell (360 -> ~305, a factor of ~0.85), so
+  that gap is worth ~22px in this file's coordinates:
+
+      302 - 22 = 280,  and  280 + 210 + 22 == 512
+-->
+<svg id="gh-dark-mode-only" width="360" height="280" xmlns="http://www.w3.org/2000/svg">
 <style>
 svg {
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
@@ -110,7 +120,7 @@ li {
 <g>
 <rect x="5" y="5" id="background" />
 <g>
-<foreignObject x="21" y="17" width="318" height="268">
+<foreignObject x="21" y="17" width="318" height="246">
 <div xmlns="http://www.w3.org/1999/xhtml" style="overflow: hidden;">
 
 <h2>Top Repositories (By Views)</h2>
